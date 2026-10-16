@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llama-mcp"
+version = "0.1.0"
+description = "MCP server that exposes a llama.cpp server (llama-server) as tools"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Scott McKenzie", email = "developers@noizyland.net" }]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "mcp>=2.3.0",
+]
+
+[project.scripts]
+llama-mcp = "llama_mcp.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9",
+    "ruff>=0.17",
+    "coverage>=7.16.2",
+    "pyrefly>=1.4.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/llama_mcp"]
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/.claude", "/CLAUDE.md", "/uv.lock"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error"]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = ["src/llama_mcp"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "ASYNC"]
+ignore = [
+    "E501",    # line length is the formatter's job
+    "SIM108",  # if/else blocks are often clearer than a long ternary
+]
+
+[tool.pyrefly]
+project-includes = ["src", "tests"]
+search-path = ["src"]
+python-version = "3.12"
+preset = "strict"
