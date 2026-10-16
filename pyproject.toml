@@ -43,6 +43,7 @@ branch = true
 source = ["src/llama_mcp"]
 
 [tool.coverage.report]
+fail_under = 80  # lines and branches (CLAUDE.md)
 show_missing = true
 skip_covered = true
 
