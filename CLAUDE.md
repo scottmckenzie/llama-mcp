@@ -16,9 +16,32 @@ Claude Code registration command are in `README.md`.
 Use uv for everything (`uv add`, `uv sync`, `uv run ...`); never call pip, python or pytest directly.
 Before finishing a change, run all of these and make sure they pass:
 
-- `uv run pytest`
+- `uv run coverage run -m pytest && uv run coverage report` (fails below 80%, lines and branches)
 - `uv run ruff check && uv run ruff format --check`
 - `uv run pyrefly check` (strict preset)
+
+CI (`.github/workflows/ci.yml`) runs the same checks plus `uv build`, with tests on Python 3.12 and 3.14;
+keep `requires-python` and that matrix in sync.
+
+## Development Standards
+
+### Git Workflow
+- Branch names: `feature/description` or `fix/description`
+- Commit messages: Follow conventional commits
+- PR required before merge
+- All CI/CD checks must pass
+- Minimum 1 approval required
+
+### GitHub Actions
+- Pin every action to a full commit SHA, with the release tag in a comment:
+  `uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`. Never use a tag or branch
+  (`@v7`, `@main`), which can be moved to different code
+- Look up a release's SHA with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`, and update the
+  SHA and the comment together
+
+### Testing Requirements
+- Minimum 80% code coverage
+- All critical paths must have tests
 
 ## Gotchas
 
