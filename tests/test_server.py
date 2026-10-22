@@ -57,6 +57,32 @@ async def test_chat_sends_system_and_prompt() -> None:
     assert "model" not in seen[0]  # a single-model llama-server needs none
 
 
+async def test_chat_sends_history_between_system_and_prompt() -> None:
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "fixed"}}]})
+
+    history = [{"role": "user", "content": "write f"}, {"role": "assistant", "content": "def f(): ..."}]
+    result = await call(handler, "chat", {"prompt": "fix f", "system": "be brief", "history": history})
+    assert result.structured_content == {"result": "fixed"}
+    assert seen[0]["messages"] == [
+        {"role": "system", "content": "be brief"},
+        {"role": "user", "content": "write f"},
+        {"role": "assistant", "content": "def f(): ..."},
+        {"role": "user", "content": "fix f"},
+    ]
+
+
+async def test_chat_rejects_unknown_history_role() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("an invalid call must not reach llama-server")
+
+    result = await call(handler, "chat", {"prompt": "hi", "history": [{"role": "system", "content": "x"}]})
+    assert result.is_error
+
+
 async def test_complete() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/completion"

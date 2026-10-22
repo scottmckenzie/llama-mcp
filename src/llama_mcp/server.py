@@ -1,16 +1,25 @@
 """MCP server exposing a llama.cpp server (llama-server) as tools."""
 
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 import httpx
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 INSTRUCTIONS = (
-    "Tools for a local llama.cpp model. Use `chat` to hand a self-contained prompt to the local model, "
-    "`complete` for raw text continuation, and `health` or `models` to check what is loaded. "
+    "Tools for a local llama.cpp model. Use `chat` to send a prompt to the local model; the server keeps "
+    "no conversation state, so pass earlier turns (including the model's own replies) in `history` to "
+    "continue a conversation. Use `complete` for raw text continuation, and `health` or `models` to check "
+    "what is loaded. "
     "When llama-server runs in router mode with several models, pass `model` (an id from `models`)."
 )
+
+
+class Turn(TypedDict):
+    """An earlier message in a `chat` conversation."""
+
+    role: Literal["user", "assistant"]
+    content: str
 
 
 def create_server(client: httpx.AsyncClient, default_model: str | None = None) -> MCPServer:
@@ -39,17 +48,20 @@ def create_server(client: httpx.AsyncClient, default_model: str | None = None) -
     async def chat(
         prompt: str,
         system: str | None = None,
+        history: list[Turn] | None = None,
         max_tokens: int = 1024,
         temperature: float | None = None,
         model: str | None = None,
     ) -> str:
         """Send a prompt to the local model through its chat template and return the reply.
 
+        Each call is independent. To continue a conversation, pass the earlier turns in `history`, oldest
+        first, with the model's previous replies as `assistant` turns; `prompt` is the new user message.
         Leave `temperature` unset to use llama-server's own sampling settings.
         """
-        messages = [{"role": "user", "content": prompt}]
-        if system is not None:
-            messages.insert(0, {"role": "system", "content": system})
+        messages = [{"role": "system", "content": system}] if system is not None else []
+        messages += [{"role": turn["role"], "content": turn["content"]} for turn in history or []]
+        messages.append({"role": "user", "content": prompt})
         body: dict[str, Any] = {"messages": messages, "max_tokens": max_tokens}
         if temperature is not None:
             body["temperature"] = temperature
