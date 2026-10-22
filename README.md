@@ -6,7 +6,7 @@ An MCP server that exposes a [llama.cpp](https://github.com/ggml-org/llama.cpp) 
 
 | Tool       | llama-server endpoint        | Purpose                                         |
 |------------|------------------------------|-------------------------------------------------|
-| `chat`     | `POST /v1/chat/completions`  | Prompt (plus optional system prompt) → reply    |
+| `chat`     | `POST /v1/chat/completions`  | Prompt (plus optional system prompt and earlier turns in `history`) → reply |
 | `complete` | `POST /completion`           | Raw text continuation, no chat template         |
 | `tokenize` | `POST /tokenize`             | Text → token ids                                |
 | `models`   | `GET /v1/models`             | Model ids and whether each is loaded            |
