@@ -51,13 +51,16 @@ def create_server(client: httpx.AsyncClient, default_model: str | None = None) -
         history: list[Turn] | None = None,
         max_tokens: int = 1024,
         temperature: float | None = None,
+        reasoning_effort: Literal["low", "medium", "high"] | None = None,
         model: str | None = None,
     ) -> str:
         """Send a prompt to the local model through its chat template and return the reply.
 
         Each call is independent. To continue a conversation, pass the earlier turns in `history`, oldest
         first, with the model's previous replies as `assistant` turns; `prompt` is the new user message.
-        Leave `temperature` unset to use llama-server's own sampling settings.
+        Leave `temperature` unset to use llama-server's own sampling settings. `reasoning_effort` sets how
+        long a reasoning model such as gpt-oss thinks before answering (higher is slower but more careful);
+        leave it unset to use llama-server's default. Templates without the setting ignore it.
         """
         messages = [{"role": "system", "content": system}] if system is not None else []
         messages += [{"role": turn["role"], "content": turn["content"]} for turn in history or []]
@@ -65,6 +68,8 @@ def create_server(client: httpx.AsyncClient, default_model: str | None = None) -
         body: dict[str, Any] = {"messages": messages, "max_tokens": max_tokens}
         if temperature is not None:
             body["temperature"] = temperature
+        if reasoning_effort is not None:
+            body["chat_template_kwargs"] = {"reasoning_effort": reasoning_effort}
         data = await request("POST", "/v1/chat/completions", with_model(body, model))
         return str(data["choices"][0]["message"]["content"])
 

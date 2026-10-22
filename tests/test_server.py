@@ -54,6 +54,7 @@ async def test_chat_sends_system_and_prompt() -> None:
     ]
     assert seen[0]["max_tokens"] == 16
     assert "temperature" not in seen[0]  # llama-server's --temp applies
+    assert "chat_template_kwargs" not in seen[0]  # llama-server's reasoning effort applies
     assert "model" not in seen[0]  # a single-model llama-server needs none
 
 
@@ -80,6 +81,26 @@ async def test_chat_rejects_unknown_history_role() -> None:
         raise AssertionError("an invalid call must not reach llama-server")
 
     result = await call(handler, "chat", {"prompt": "hi", "history": [{"role": "system", "content": "x"}]})
+    assert result.is_error
+
+
+async def test_chat_sends_reasoning_effort() -> None:
+    seen: list[dict[str, Any]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "ok"}}]})
+
+    result = await call(handler, "chat", {"prompt": "hi", "reasoning_effort": "high"})
+    assert not result.is_error
+    assert seen[0]["chat_template_kwargs"] == {"reasoning_effort": "high"}
+
+
+async def test_chat_rejects_unknown_reasoning_effort() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("an invalid call must not reach llama-server")
+
+    result = await call(handler, "chat", {"prompt": "hi", "reasoning_effort": "max"})
     assert result.is_error
 
 
